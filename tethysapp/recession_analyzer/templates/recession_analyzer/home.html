@@ -1,11 +1,18 @@
 {% extends "recession_analyzer/base.html" %}
+{% load tethys_gizmos %}
 
 {% block app_content %}
-  <h1>Welcome!</h1>
-  <p>Congratulations on creating a new Tethys app!</p>
-{% endblock %}
-
-{% block app_actions %}
-  <a href="" class="btn btn-default">Next</a>
-  <a href="" class="btn btn-default">Back</a>
+    <form method="post">
+    {% csrf_token %}
+    {% gizmo text_input gages %}
+    {% gizmo date_picker start %}
+    {% gizmo date_picker stop %}
+    {% gizmo button_group buttons %}
+    </form>
+    
+    {% if line_plot_view %}
+        {% gizmo plot_view line_plot_view %}
+        {% gizmo plot_view scatter_plot_view %}
+    {% endif %}    
+    
 {% endblock %}

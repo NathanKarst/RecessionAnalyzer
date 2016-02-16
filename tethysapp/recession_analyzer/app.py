@@ -1,6 +1,5 @@
 from tethys_sdk.base import TethysAppBase, url_map_maker
 
-
 class RecessionAnalyzer(TethysAppBase):
     """
     Tethys app class for Recession Analyzer.
@@ -29,3 +28,6 @@ class RecessionAnalyzer(TethysAppBase):
         )
 
         return url_maps
+
+        return url_maps
+        
