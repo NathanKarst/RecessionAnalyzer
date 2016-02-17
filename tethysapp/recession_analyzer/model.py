@@ -49,6 +49,7 @@ def getRecessions(gauge,timeSeries,minRecessionLength = 10):
         INPUTS: gauge [string]
                 timeSeries [numpy array]
                 minRecessionLength [optional integer, default = 10]
+                ...some new inputs here
     
         OUTPUT: pandas data frame with columns [Gauge, StarIdx, EndIdx, A, B]
     
