@@ -1,4 +1,4 @@
-from tethys_sdk.gizmos import DatePicker, MapView, MVLayer, MVView, TextInput, Button, ButtonGroup, LinePlot, ScatterPlot
+from tethys_sdk.gizmos import DatePicker, MapView, MVLayer, MVView, TextInput, Button, ButtonGroup, LinePlot, ScatterPlot, ToggleSwitch, RangeSlider
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .model import TimeSeries, getRecessions
@@ -25,6 +25,18 @@ def home(request):
                                             initial='2015-01-01')  
                                             
                                                                            
+    concave_down_toggle = ToggleSwitch(name='concave_down_toggle', display_text='Concave down recessions')
+
+    fitting = ToggleSwitch(name='fitting', display_text='Nonlinear fitting')
+    
+    min_length = RangeSlider(name='min_length', display_text='Minimum recession length', min=4, max=10, initial=4, step=1)
+    
+    rec_sens = RangeSlider(name='rec_sens', display_text='Recession detection sensitivity parameter', min=0, max=1, initial=1, step=0.01)    
+
+    antecedent_moisture = RangeSlider(name='min_length', display_text='Antecedent moisture parameter', min=0, max=1, initial=1, step=0.01)
+
+    lag_start = RangeSlider(name='lag_start', display_text='Lag between max. obs. streamflow and defined rec. start', min=0, max=3, initial=0, step=1)
+
 
     run_button = Button(display_text='Run',
                         icon='glyphicon glyphicon-play',
@@ -90,6 +102,17 @@ def home(request):
                }]
         )
 
-    context = {'start': start, 'stop':stop, 'gages': gages, 'buttons': horizontal_buttons, 'line_plot_view':line_plot_view, 'scatter_plot_view':scatter_plot_view}
+    context = {'start': start, 
+                'stop':stop, 
+                'gages': gages, 
+                'buttons': horizontal_buttons, 
+                'line_plot_view':line_plot_view, 
+                'scatter_plot_view':scatter_plot_view,
+                'concave_down_toggle': concave_down_toggle,
+                'fitting':fitting,
+                'min_length':min_length,
+                'antecedent_moisture':antecedent_moisture,
+                'lag_start':lag_start,
+                'rec_sens':rec_sens}
 
     return render(request, 'recession_analyzer/home.html', context)
