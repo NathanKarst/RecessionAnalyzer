@@ -1,7 +1,9 @@
 from tethys_sdk.gizmos import DatePicker, MapView, MVLayer, MVView, TextInput, Button, ButtonGroup, LinePlot, ScatterPlot, ToggleSwitch, RangeSlider
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from .model import TimeSeries, getRecessions
+from .model import recessionExtract
+import pandas as pd
+import numpy as np
 
 
 @login_required()
@@ -9,7 +11,9 @@ def home(request):
     """
     Controller for the app home page.
     """
-    gages  = TextInput(name='gages', display_text='Gage', initial='11477000')      
+
+
+    gages  = TextInput(name='gages', display_text='Gage', initial='11477000',attributes={'size':15})
 
     start = DatePicker(name='start',
                                             display_text='Start date',
@@ -25,13 +29,14 @@ def home(request):
                                             initial='2015-01-01')  
                                             
                                                                            
-    concave_down_toggle = ToggleSwitch(name='concave_down_toggle', display_text='Concave down recessions')
+    concave_down_toggle = ToggleSwitch(name='concave_down_toggle', size='mini', display_text='Concave down recessions')
 
-    fitting = ToggleSwitch(name='fitting', display_text='Nonlinear fitting')
+    fitting = ToggleSwitch(name='fitting', display_text='Nonlinear fitting',size='mini')
     
-    min_length = RangeSlider(name='min_length', display_text='Minimum recession length', min=4, max=10, initial=4, step=1)
+    min_length = RangeSlider(name='min_length', display_text='Minimum recession length', min=4, max=10, initial=4, step=1,attributes={'width':'40px'})
     
-    rec_sens = RangeSlider(name='rec_sens', display_text='Recession detection sensitivity parameter', min=0, max=1, initial=1, step=0.01)    
+    rec_sens = RangeSlider(name='rec_sens', display_text='Recession detection sensitivity parameter', min=0, max=1, initial=1, step=0.01,
+                           )
 
     antecedent_moisture = RangeSlider(name='min_length', display_text='Antecedent moisture parameter', min=0, max=1, initial=1, step=0.01)
 
@@ -55,12 +60,23 @@ def home(request):
     scatter_plot_view = None
     if request.POST and 'gages' in request.POST:
         gageName = request.POST['gages'].split(',')
+        gageName = [gageName[0].encode('ascii','ignore')]
+
         start = request.POST['start']
         stop = request.POST['stop']
+        min_length = request.POST['min_length']
+        selectivity = request.POST['rec_sens']*500
+        ante=10
+        window=3
         
-        ts = TimeSeries(gageName[0],start,stop)
-        rec = getRecessions(gageName,ts)
-        
+
+        sitesDict = recessionExtract(gageName,start,stop)
+        thekeys = list(sitesDict.keys())
+
+        ts = sitesDict[gageName[0]]
+        flow = ts[gageName[0]].values;
+        thetime = np.arange(len(flow))
+
         line_plot_view = LinePlot(
         height='500px',
         width='500px',
@@ -71,18 +87,26 @@ def home(request):
         y_axis_title='Flow',
         y_axis_units='cfs',
         xAxis={
-            'type': 'datetime',
+            'type': 'linear',
             },
         
         series=[{
                'name': gageName,
                'color': '#0066ff',
                'marker': {'enabled': False},
-               'data': zip(ts.time,ts.discharge),
-               'dateTimeLabelFormats':{'second':'%Y'},
+               'data': zip(thetime,ts[gageName[0]].values),
                }]
         )
-        
+        avals = ts['A0n'][ts['A0n'] > 0 ].values;
+        bvals = ts['Bn'][ts['Bn']>0].values;
+        tuplelist=[];
+        for i in np.arange(len(avals)):
+            tuplelist.append((avals[i],bvals[i]))
+
+
+
+
+
         scatter_plot_view = ScatterPlot(
         height='500px',
         width='500px',
@@ -92,12 +116,12 @@ def home(request):
         x_axis_title='log(a)',
         y_axis_title='b',
         x_axis_units = '[]',
+        xAxis = {'type':'linear'},
         y_axis_units = '[]',
-        xAxis = {'type':'logarithmic'},
         series=[{
                'name': gageName,
                'color': '#0066ff',
-               'data': zip(rec.A,rec.B),
+               'data': tuplelist ,
                'dateTimeLabelFormats':{'second':'%Y'},
                }]
         )

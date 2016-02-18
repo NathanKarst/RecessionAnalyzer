@@ -1,5 +1,5 @@
 from tethys_sdk.base import TethysAppBase, url_map_maker
-from tethys_sdk.stores import PersistentStore
+
 
 class RecessionAnalyzer(TethysAppBase):
     """
@@ -30,16 +30,4 @@ class RecessionAnalyzer(TethysAppBase):
 
         return url_maps
 
-        return url_maps
         
-    def persistent_stores(self):
-        """
-        Add one or more persistent stores
-        """
-        stores = (PersistentStore(name='stream_gage_db',
-                                  initializer='recession_analyzer.init_stores.init_stream_gage_db',
-                                  spatial=True
-                ),
-        )
-
-        return stores        
