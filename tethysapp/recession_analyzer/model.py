@@ -37,14 +37,13 @@ class TimeSeries():
         df = pd.read_csv(tsv,sep='\t',header=26,index_col=False,parse_dates=[2],date_parser=dateparse,skiprows=[27])
         
         df.columns = ['Agency','Site','Time','Discharge','DischargeQualification']
-        df = df[df.DischargeQualification == 'A']   # only considered accepted (not provisional) data points
         
         self.time = df.Time
         self.discharge = df.Discharge
         
 
 
-def getRecessions(gauge,timeSeries,minRecessionLength = 10):
+def getRecessions(gauge,timeSeries,minRecessionLength = 5):
     """
         INPUTS: gauge [string]
                 timeSeries [numpy array]
