@@ -5,31 +5,32 @@
     <script type="text/javascript">
         function showValue(newValue,rangex)
         {
-            var str1 = "range";
-            var res = str1.concat(rangex);
-	        document.getElementById(res).innerHTML=newValue;
+	        document.getElementById(rangex).innerHTML=newValue;
         }
     </script>
+
+
+
 
     <form method="post" >
         <div class="row">
             <div class="col-xs-3">
-                {% gizmo text_input gages %}
+                {% gizmo text_input gages_options %}
             </div>
             <div class="col-xs-3">
-                {% gizmo date_picker start %}
+                {% gizmo date_picker start_options %}
             </div>
             <div class="col-xs-3">
-                {% gizmo date_picker stop %}
+                {% gizmo date_picker stop_options %}
             </div>
         </div>
 
         <div class="row">
             <div class="col-xs-6">
-                {% gizmo toggle_switch concave_down_toggle %}
+                {% gizmo toggle_switch concave_options %}
             </div>
             <div class="col-xs-5">
-                {% gizmo toggle_switch fitting %}
+                {% gizmo toggle_switch nonlinear_fitting_options %}
             </div>
         </div>
 
@@ -37,23 +38,23 @@
 
         <div class="row">
             <div class="col-xs-3">
-                <strong>Peak sensitivity = <span id="rangerec_sense">1</span></strong>
-                {% gizmo range_slider rec_sens %}
+                <strong>Peak sensitivity = <span id="rec_sense_initial">{{ rec_sense_initial }}</span></strong>
+                {% gizmo range_slider rec_sense_options %}
             </div>
             <div class="col-xs-3">
-                <strong>A.S.I. factor = <span id="rangeantecedent_moisture">1</span></strong>
-                {% gizmo range_slider antecedent_moisture %}
+                <strong>A.S.I. factor = <span id="antecedent_moisture_initial">{{ antecedent_moisture_initial }} </span></strong>
+                {% gizmo range_slider antecedent_moisture_options %}
             </div>
             <div class="col-xs-3">
-                <strong>Lag rec start = <span id="rangelag_start">0</span></strong>
-                {% gizmo range_slider lag_start %}
+                <strong>Lag rec start = <span id="lag_start_initial">{{ lag_start_initial }} </span></strong>
+                {% gizmo range_slider lag_start_options %}
             </div>
         </div>
 
         <div class="row" >
             <div class="col-xs-3">
-                <strong>Min recession len = <span id="rangemin_length">4</span></strong>
-                {% gizmo range_slider min_length %}
+                <strong>Min recession len = <span id="min_length_initial">{{ min_length_initial }}</span></strong>
+                {% gizmo range_slider min_length_options %}
             </div>
             <div class="col-xs-2" vertical-align="bottom">
                 <div>&nbsp</div>
@@ -67,6 +68,7 @@
             </div>
         </div>
     </form>
+
 
 
 
