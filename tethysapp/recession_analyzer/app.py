@@ -26,6 +26,9 @@ class RecessionAnalyzer(TethysAppBase):
         url_maps = (UrlMap(name='home',
                            url='recession-analyzer',
                            controller='recession_analyzer.controllers.home'),
+                    UrlMap(name='results',
+                           url='recession-analyzer:results',
+                           controller='recession_analyzer.controllers.results')
         )
 
         return url_maps

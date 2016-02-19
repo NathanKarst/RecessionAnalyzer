@@ -2,8 +2,16 @@
 {% load tethys_gizmos %}
 {% block app_content %}
 
-    <form method="post">
+    <script type="text/javascript">
+        function showValue(newValue,rangex)
+        {
+            var str1 = "range";
+            var res = str1.concat(rangex);
+	        document.getElementById(res).innerHTML=newValue;
+        }
+    </script>
 
+    <form method="post" >
         <div class="row">
             <div class="col-xs-3">
                 {% gizmo text_input gages %}
@@ -29,34 +37,40 @@
 
         <div class="row">
             <div class="col-xs-3">
+                <strong>Peak sensitivity = <span id="rangerec_sense">1</span></strong>
                 {% gizmo range_slider rec_sens %}
             </div>
             <div class="col-xs-3">
+                <strong>A.S.I. factor = <span id="rangeantecedent_moisture">1</span></strong>
                 {% gizmo range_slider antecedent_moisture %}
             </div>
             <div class="col-xs-3">
+                <strong>Lag rec start = <span id="rangelag_start">0</span></strong>
                 {% gizmo range_slider lag_start %}
             </div>
         </div>
 
         <div class="row" >
             <div class="col-xs-3">
+                <strong>Min recession len = <span id="rangemin_length">4</span></strong>
                 {% gizmo range_slider min_length %}
             </div>
-            <div class="col-xs-3" vertical-align="bottom">
-                <div>&nbsp;</div>
-                <div>&nbsp;</div>
-                {% gizmo button_group buttons %}
+            <div class="col-xs-2" vertical-align="bottom">
+                <div>&nbsp</div>
+                <input type="submit" name="submit_button" class="btn btn-primary btn-blk" value="Set parameters">
+            </div>
+            <div class="'col-xs-3" vertical-align="bottom">
+                <div>&nbsp</div>
+                {% if submitted %}
+                    <a href="{% url 'recession_analyzer:results' %}" class="btn btn-success btn-blk">Analyze recessions</a>
+                {% endif %}
             </div>
         </div>
     </form>
-    
-    {% if line_plot_view %}
-        {% gizmo plot_view line_plot_view %}
-    {% endif %}
 
-    {% if scatter_plot_view %}
-        {% gizmo plot_view scatter_plot_view %}
-    {% endif %}
+
+
     
 {% endblock %}
+
+
