@@ -25,6 +25,8 @@
             </div>
         </div>
 
+        <br/>
+
         <div class="row">
             <div class="col-xs-6">
                 {% gizmo toggle_switch concave_options %}
@@ -34,6 +36,7 @@
             </div>
         </div>
 
+        <br/>
     {% csrf_token %}
 
         <div class="row">
@@ -50,7 +53,7 @@
                 {% gizmo range_slider lag_start_options %}
             </div>
         </div>
-
+        <br/>
         <div class="row" >
             <div class="col-xs-3">
                 <strong>Min recession len = <span id="min_length_initial">{{ min_length_initial }}</span></strong>
@@ -58,15 +61,13 @@
             </div>
             <div class="col-xs-2" vertical-align="bottom">
                 <div>&nbsp</div>
-                <input type="submit" name="submit_button" class="btn btn-primary btn-blk" value="Set parameters">
-            </div>
-            <div class="'col-xs-3" vertical-align="bottom">
-                <div>&nbsp</div>
-                {% if submitted %}
-                    <a href="{% url 'recession_analyzer:results' %}" class="btn btn-success btn-blk">Analyze recessions</a>
-                {% endif %}
             </div>
         </div>
+
+        <input type="submit" name="submit_button" class="btn btn-primary btn-blk btn-lg" value="Set parameters">
+        {% if submitted %}
+            <a href="{% url 'recession_analyzer:results' %}" class="btn btn-success btn-blk btn-lg">Analyze recessions</a>
+        {% endif %}
     </form>
 
 

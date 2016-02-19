@@ -2,7 +2,7 @@
 {% load tethys_gizmos %}
 
 {% block app_content %}
-    <a href="{% url 'recession_analyzer:home' %}" class="btn btn-success btn-xs">Change parameters</a>
+    <a href="{% url 'recession_analyzer:home' %}" class="btn btn-success">Change parameters</a>
 
     {% gizmo plot_view line_plot_view %}
 

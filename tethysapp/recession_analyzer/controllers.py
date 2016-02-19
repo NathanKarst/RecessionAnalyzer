@@ -62,9 +62,9 @@ def home(request):
                                             initial=stop_initial)
 
 
-    concave_options = ToggleSwitch(name='concave_input', size='mini', initial=concave_initial, display_text='Concave recessions')
+    concave_options = ToggleSwitch(name='concave_input', size='small', initial=concave_initial, display_text='Concave recessions')
 
-    nonlinear_fitting_options = ToggleSwitch(name='nonlinear_fitting_input', display_text='Nonlinear fitting',size='mini',initial = nonlinear_fitting_initial)
+    nonlinear_fitting_options = ToggleSwitch(name='nonlinear_fitting_input', display_text='Nonlinear fitting',size='small',initial = nonlinear_fitting_initial)
     
     min_length_options = RangeSlider(name='min_length_input', min=4, max=10, initial=min_length_initial, step=1,attributes={"onchange":"showValue(this.value,'min_length_initial');"})
     
