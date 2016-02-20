@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from .app import RecessionAnalyzer
 import os
-
+import cPickle as pickle
 
 @login_required()
 def home(request):
@@ -81,9 +81,11 @@ def home(request):
         app_workspace = RecessionAnalyzer.get_user_workspace(request.user)
         new_file_path = os.path.join(app_workspace.path,'current_plot.txt')
 
-        with open(new_file_path,'w') as a_file:
-            poststring = request.POST['gages_input']+'\n' + request.POST['start_input']+','+request.POST['stop_input']+','+request.POST['rec_sense_input']+','+request.POST['min_length_input']+','+request.POST['antecedent_moisture_input']+','+request.POST['lag_start_input']+','+str(nonlinear_fitting_initial)+','+str(concave_initial)
-            a_file.write(poststring)
+        pickle.dump(request.POST, open(new_file_path[:-4] + '.p','w'))
+
+        #with open(new_file_path,'w') as a_file:
+        #    poststring = request.POST['gages_input']+'\n' + request.POST['start_input']+','+request.POST['stop_input']+','+request.POST['rec_sense_input']+','+request.POST['min_length_input']+','+request.POST['antecedent_moisture_input']+','+request.POST['lag_start_input']+','+str(nonlinear_fitting_initial)+','+str(concave_initial)
+        #    a_file.write(poststring)
 
         submitted='submitted'
 
@@ -114,26 +116,42 @@ def results(request):
     with open(new_file_path,'r') as a_file:
         textFileLines = a_file.readlines()
 
+    ## load the pickled POST dictionary from the user workspace
+    post = pickle.load(open(new_file_path[:-4] + '.p','r'))
+    
+    gageName    = post['gages_input']
+    start       = post['start_input']
+    stop        = post['stop_input']
+    rec_sense   = post['rec_sense_input']
+    min_length  = post['min_length_input']
+    ante_moist  = post['antecedent_moisture_input']
+    lag_start   = post['lag_start_input']
+    
+    # if these aren't selected in the original form, then a value won't be saved in the 
+    # POST dictionary, so we have to handle them a bit differently. 
+    nonlin_fit  = post.get('nonlinear_fitting_input',False)     
+    concave     = post.get('concave_input', False)              
 
-    gageName = textFileLines[0].split('\n');
-    gageName = gageName[0].split(',')
-    params = textFileLines[1].split(',')
-    start = params[0]; stop = params[1];
-    rec_sense=params[2]; min_length=params[3];
-    antecedent_moisture=params[4];
-    lag_start=params[5];
-    fit = params[6]; concave = params[7];
+    #gageName = textFileLines[0].split('\n');
+    #gageName = gageName[0].split(',')
+    #print 'Old way:' + str(gageName)
+    #params = textFileLines[1].split(',')
+    #start = params[0]; stop = params[1];
+    #rec_sense=params[2]; min_length=params[3];
+    #ante_moist=params[4];
+    #lag_start=params[5];
+    #fit = params[6]; concave = params[7];
 
     min_length = float(min_length)
     selectivity = float(rec_sense)*500
     ante=10
     window=3
     #sitesDict = recessionExtract(gageName,start,stop)
-    sitesDict = recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectivity=selectivity, minLen=min_length, option=1, lin=1)
+    sitesDict = recessionExtract([gageName], start,stop,ante=10, alph=0.90, window=3, selectivity=selectivity, minLen=min_length, option=1, lin=1)
 
 
-    ts = sitesDict[gageName[0]]
-    flow = ts[gageName[0]].values;
+    ts = sitesDict[gageName]
+    flow = ts[gageName].values;
     data = zip(ts.index,flow)
 
     print(gageName)
@@ -148,7 +166,7 @@ def results(request):
     y_axis_title='Flow',
     y_axis_units='cfs',
     series=[{
-           'name': ['Gage number: ' + gageName[0]],
+           'name': ['Gage number: ' + gageName],
            'data': data,
            }]
     )
