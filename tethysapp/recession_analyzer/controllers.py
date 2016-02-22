@@ -147,14 +147,38 @@ def results(request):
     ante=10
     window=3
     #sitesDict = recessionExtract(gageName,start,stop)
-    sitesDict = recessionExtract([gageName], start,stop,ante=10, alph=0.90, window=3, selectivity=selectivity, minLen=min_length, option=1, lin=1)
-
+    sitesDict, startStopDict = recessionExtract([gageName], start,stop,ante=10, alph=0.90, window=3, selectivity=selectivity, minLen=min_length, option=1, nonlin_fit=nonlin_fit)
 
     ts = sitesDict[gageName]
-    flow = ts[gageName].values;
-    data = zip(ts.index,flow)
+    startStop = startStopDict[gageName]
+    startVec = startStop[0]
+    endVec = startStop[1]
+    flow = ts[gageName];
+    tsinds = ts.index
+    data = zip(tsinds,flow);
 
-    print(gageName)
+    ##################TESTING REC/NOTREC plot
+    series = [];
+    #build recessions
+
+    series.append({'name':' ','color':'#0066ff',
+                       'data':zip(flow[tsinds[0]:startVec[0]].index,flow[tsinds[0]:startVec[0]])})
+    series.append({'name':' ','color':'#ff6600',
+                       'data':zip(flow[tsinds[0]:startVec[0]].index,flow[tsinds[0]:startVec[0]])})
+    for i in np.arange(0,len(startVec)-1):
+        series.append({'name':' ','color':'#0066ff',
+                       'data':zip(flow[endVec[i]:startVec[i+1]].index,flow[endVec[i]:startVec[i+1]])})
+        series.append({'name':' ','color':'#ff6600',
+                       'data':zip(flow[startVec[i+1]:endVec[i+1]].index,flow[startVec[i+1]:endVec[i+1]])})
+
+    series.append({'name':' ','color':'#0066ff',
+                       'data':zip(flow[endVec[-1]:tsinds[-1]].index,flow[endVec[-1]:tsinds[-1]])})
+
+
+
+
+
+
 
     line_plot_view = TimeSeries(
     height='250px',
@@ -165,10 +189,7 @@ def results(request):
     x_axis_title='Time',
     y_axis_title='Flow',
     y_axis_units='cfs',
-    series=[{
-           'name': ['Gage number: ' + gageName],
-           'data': data,
-           }]
+    series=series
     )
 
 

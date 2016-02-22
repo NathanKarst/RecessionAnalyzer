@@ -16,8 +16,9 @@ from scipy import optimize as op
 
 
 import time
-def recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectivity=100, minLen=5, option=1, lin=1):
+def recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectivity=100, minLen=5, option=1, nonlin_fit=False):
     sitesDict = {};
+    startStopDict = {};
     for site in gageName:
         d = getTimeSeries(site,start,stop)
         dateandtime=pd.to_datetime(d['Time'])
@@ -42,6 +43,7 @@ def recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectiv
         d['Dunsmooth']= d[site].diff().shift(-1);
         d['DDsmooth']=d['smooth'].diff().shift(-1).diff().shift(-1);
         d['DDunsmooth'] = d[site].diff().shift(-1).diff().shift(-1);
+        #get rid of nans at end
         d = d[:-2];
 
         #boolean vector for recession periods
@@ -58,14 +60,14 @@ def recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectiv
         d['An']=np.nan; d['Bn']=np.nan; d['A0n']=np.nan; d['api']=np.nan;
 
         for i in np.arange(len(datesMax)-1):
-            recStart = datesMax[i]; peak1 = datesMax[i]+pd.DateOffset(days=1); peak2 = datesMax[i+1];
-            recEnd = d[peak1:peak2][d[peak1:peak2]['choose']==False].index[0];
+            recStart = datesMax[i]; peak2 = datesMax[i+1];
+            recEnd = d[recStart:peak2][d[recStart:peak2]['choose']==False].index[0];
             if len(d[recStart:recEnd])<minLen:
                 continue;
 
             t = np.arange(len(d[site][recStart:recEnd]))
             q0 = d[site][recStart];
-            if lin==1:
+            if not nonlin_fit:
                 ab=fitRecession(t,d[site][recStart:recEnd])
                 afit=ab[0];
                 bfit=ab[1];
@@ -88,12 +90,13 @@ def recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectiv
                     continue;
                 afit = popt[0]; bfit = 1-popt[1];
                 if bfit>=1 and bfit<10:
-                    d['An'][recStart] = afit; d['Bn'][recStart]=bfit;
-                    beforeRec = d[site][recStart-pd.DateOffset(days=ante):recStart];
-                    beforeRec = beforeRec[::-1]
-                    factor = alph**np.arange(len(beforeRec))
+                    afitVec=np.append(afitVec,afit); bfitVec=np.append(bfitVec,bfit)
+                    startVec=np.append(startVec,recStart)
+                    endVec=np.append(endVec,recEnd)
+                    beforeRec = d[site][recStart-pd.DateOffset(days=ante):recStart].values;
+                    factor = alph**np.arange(len(beforeRec))[::-1]
                     api = np.sum(beforeRec*factor)
-                    apiVec.append(api)
+                    apiVec=np.append(apiVec,api)
 
         a0vec=BergnerZouhar(afitVec,bfitVec);
         d['An'].loc[startVec]=afitVec;
@@ -102,7 +105,9 @@ def recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectiv
         d['A0n'].loc[startVec]=a0vec;
         sitesDict[site]=d;
 
-    return sitesDict
+        startStopDict[site]= (startVec,endVec)
+
+    return sitesDict, startStopDict
 
 def fitRecession(time,discharge):
     """ INPUTS: time [numpy array]
@@ -113,7 +118,9 @@ def fitRecession(time,discharge):
         This is a very simple fitting procedure, but it can easily be superceded.
     """
     dq = np.diff(discharge)
-    p = np.polyfit(np.log(discharge[1:]),np.log(-dq),1)
+    logdq = np.log(-dq)
+
+    p = np.polyfit(np.log(discharge[1:]),logdq,1)
     return (np.exp(p[1]),p[0]) #(a,b)
     
 def BergnerZouhar(A,B):
