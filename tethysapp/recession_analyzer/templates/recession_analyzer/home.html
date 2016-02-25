@@ -2,78 +2,47 @@
 {% load tethys_gizmos %}
 {% block app_content %}
 
+
     <script type="text/javascript">
         function showValue(newValue,rangex)
         {
 	        document.getElementById(rangex).innerHTML=newValue;
         }
     </script>
+<div class="row">
+    <div class="col-md-3">
+        <form method="post" >
+            <input type="submit" name="submit_button" class="btn btn-primary btn-blk btn-sm" value="Set parameters">
+            {% if submitted %}
+                <a href="{% url 'recession_analyzer:results' %}" class="btn btn-success btn-blk btn-sm">Analyze recessions</a>
+            {% endif %}
+            {% gizmo text_input gages_options %}
+            {% gizmo date_picker start_options %}
+            {% gizmo date_picker stop_options %}
+            {% gizmo toggle_switch concave_options %}
+            {% gizmo toggle_switch nonlinear_fitting_options %}
+        {% csrf_token %}
+            <strong>Peak sensitivity = <span id="rec_sense_initial">{{ rec_sense_initial }}</span></strong>
+            {% gizmo range_slider rec_sense_options %}<div class="sliderBox"><span class="sliderText" id="temp"></span></div>
+
+            <strong>A.S.I. factor = <span id="antecedent_moisture_initial">{{ antecedent_moisture_initial }} </span></strong>
+            {% gizmo range_slider antecedent_moisture_options %}
+
+            <strong>Lag rec start = <span id="lag_start_initial">{{ lag_start_initial }} </span></strong>
+            {% gizmo range_slider lag_start_options %}
+
+            <strong>Min recession len = <span id="min_length_initial">{{ min_length_initial }}</span></strong>
+            {% gizmo range_slider min_length_options %}
+        </form>
+    </div>
+</div>
 
 
 
-
-    <form method="post" >
-        <div class="row">
-            <div class="col-xs-3">
-                {% gizmo text_input gages_options %}
-            </div>
-            <div class="col-xs-3">
-                {% gizmo date_picker start_options %}
-            </div>
-            <div class="col-xs-3">
-                {% gizmo date_picker stop_options %}
-            </div>
-        </div>
-
-        <br/>
-
-        <div class="row">
-            <div class="col-xs-6">
-                {% gizmo toggle_switch concave_options %}
-            </div>
-            <div class="col-xs-5">
-                {% gizmo toggle_switch nonlinear_fitting_options %}
-            </div>
-        </div>
-
-        <br/>
-    {% csrf_token %}
-
-        <div class="row">
-            <div class="col-xs-3">
-                <strong>Peak sensitivity = <span id="rec_sense_initial">{{ rec_sense_initial }}</span></strong>
-                {% gizmo range_slider rec_sense_options %}
-            </div>
-            <div class="col-xs-3">
-                <strong>A.S.I. factor = <span id="antecedent_moisture_initial">{{ antecedent_moisture_initial }} </span></strong>
-                {% gizmo range_slider antecedent_moisture_options %}
-            </div>
-            <div class="col-xs-3">
-                <strong>Lag rec start = <span id="lag_start_initial">{{ lag_start_initial }} </span></strong>
-                {% gizmo range_slider lag_start_options %}
-            </div>
-        </div>
-        <br/>
-        <div class="row" >
-            <div class="col-xs-3">
-                <strong>Min recession len = <span id="min_length_initial">{{ min_length_initial }}</span></strong>
-                {% gizmo range_slider min_length_options %}
-            </div>
-            <div class="col-xs-2" vertical-align="bottom">
-                <div>&nbsp</div>
-            </div>
-        </div>
-
-        <input type="submit" name="submit_button" class="btn btn-primary btn-blk btn-lg" value="Set parameters">
-        {% if submitted %}
-            <a href="{% url 'recession_analyzer:results' %}" class="btn btn-success btn-blk btn-lg">Analyze recessions</a>
-        {% endif %}
-    </form>
-
-
-
-
-    
 {% endblock %}
 
+{% block scripts %}
+<link href='https://cdn.datatables.net/1.10.10/css/jquery.dataTables.min.css' rel="stylesheet">
+{{ block.super }}
+{% endblock %}
 

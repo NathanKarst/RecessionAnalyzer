@@ -113,8 +113,8 @@ def results(request):
     '''
     app_workspace = RecessionAnalyzer.get_user_workspace(request.user)
     new_file_path = os.path.join(app_workspace.path,'current_plot.txt')
-    with open(new_file_path,'r') as a_file:
-        textFileLines = a_file.readlines()
+    #with open(new_file_path,'r') as a_file:
+    #    textFileLines = a_file.readlines()
 
     ## load the pickled POST dictionary from the user workspace
     post = pickle.load(open(new_file_path[:-4] + '.p','r'))
@@ -164,7 +164,7 @@ def results(request):
     series.append({'name':' ','color':'#0066ff',
                        'data':zip(flow[tsinds[0]:startVec[0]].index,flow[tsinds[0]:startVec[0]])})
     series.append({'name':' ','color':'#ff6600',
-                       'data':zip(flow[tsinds[0]:startVec[0]].index,flow[tsinds[0]:startVec[0]])})
+                       'data':zip(flow[startVec[0]:endVec[0]].index,flow[startVec[0]:endVec[0]])})
     for i in np.arange(0,len(startVec)-1):
         series.append({'name':' ','color':'#0066ff',
                        'data':zip(flow[endVec[i]:startVec[i+1]].index,flow[endVec[i]:startVec[i+1]])})
