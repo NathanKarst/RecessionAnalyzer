@@ -1,18 +1,20 @@
-from tethys_sdk.gizmos import DatePicker, MapView, MVLayer, MVView, TextInput, Button, ButtonGroup, LinePlot, ScatterPlot, ToggleSwitch, RangeSlider, TimeSeries
+from tethys_sdk.gizmos import DatePicker, MapView, MVLayer, MVView, TextInput, Button, ButtonGroup, LinePlot, ScatterPlot, ToggleSwitch, RangeSlider, TimeSeries, PlotView, SelectInput
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from .model import recessionExtract
+from .model import recessionExtract, createAbJson
 import pandas as pd
 import numpy as np
 from .app import RecessionAnalyzer
 import os
 import cPickle as pickle
+import simplejson as json
 
 @login_required()
 def home(request):
     """
     Controller for the app home page.
     """
+    testString = 'fubar'
     gages_initial = '11477000'
     start_initial = '2000-01-01'
     stop_initial = '2015-01-01'
@@ -22,32 +24,50 @@ def home(request):
     min_length_initial= 4
     antecedent_moisture_initial = 1
     lag_start_initial = 0
+    abJson='';
 
-    if request.POST:
+    #if submitting parameters and doing analysis,
+    #but not submitting a site from the dropdown menu
+    #make sure to persist the values in the sliders/etc
+    if request.POST and 'site_submit' not in request.POST:
         gages_initial = request.POST['gages_input']
         start_initial = request.POST['start_input']
         stop_initial = request.POST['stop_input']
-
         if 'concave_input' in request.POST:
             concave_initial=True;
         else:
             concave_initial=False;
-
         if 'nonlinear_fitting_input' in request.POST:
             nonlinear_fitting_initial=True;
         else:
             nonlinear_fitting_initial=False;
-
         rec_sense_initial=request.POST['rec_sense_input']
         min_length_initial=request.POST['min_length_input']
         antecedent_moisture_initial = request.POST['antecedent_moisture_input']
         lag_start_initial = request.POST['lag_start_input']
 
+    #if submitting a new site with the dropdown menu
+    #should also persist the data, but use the
+    #stored post from the initial submit
+    if request.POST and 'site_submit' in request.POST:
+        app_workspace = RecessionAnalyzer.get_user_workspace(request.user)
+        new_file_path = os.path.join(app_workspace.path,'current_plot.txt')
+        post = pickle.load(open(new_file_path[:-4] + '.p','r'))
+        gages_initial    = post['gages_input']
+        start_initial       = post['start_input']
+        stop_initial        = post['stop_input']
+        rec_sense_initial   = post['rec_sense_input']
+        min_length_initial  = post['min_length_input']
+        ante_moist_initial  = post['antecedent_moisture_input']
+        lag_start_initial   = post['lag_start_input']
+        nonlin_fit_initial  = post.get('nonlinear_fitting_input',False)
+        concave_initial     = post.get('concave_input', False)
 
 
-
+    #initialize options for all the sliders, plots, etc
+    ##################################################
+    ##################################################
     gages_options  = TextInput(name='gages_input', display_text='Gage', initial=gages_initial,attributes={'size':15})
-
     start_options = DatePicker(name='start_input',
                                             display_text='Start date',
                                             autoclose=True,
@@ -60,7 +80,6 @@ def home(request):
                                             format='yyyy-m-d',
                                             start_date='01/01/1910',
                                             initial=stop_initial)
-
 
     concave_options = ToggleSwitch(name='concave_input', size='small', initial=concave_initial, display_text='Concave recessions')
 
@@ -77,18 +96,408 @@ def home(request):
 
     submitted=''
 
-    if request.POST:
+    scatter_highchart = {
+        'chart': {
+            'type':'scatter',
+            'zoomType': 'xy'
+        },
+        'title': {
+            'text': 'Recession parameters'
+        },
+        'legend': {
+            'layout': 'vertical',
+            'align': 'right',
+            'verticalAlign': 'middle',
+            'borderWidth': 0,
+            'enabled': False
+        },
+        'xAxis': {
+            'title': {
+                'enabled': True,
+                'text': 'log(a)',
+                'offset': 35
+            },
+            'type': 'logarithmic',
+            'tickLength': 10
+        },
+        'yAxis': {
+            'title': {
+                'enabled': True,
+                'text': 'b'
+            }
+        },
+        'series': []}
+
+    scatter_plot_view = PlotView(highcharts_object=scatter_highchart,
+                              width='100%',
+                              height='300px',
+                              attributes='id=ab-scatter'
+        )
+
+
+    highcharts_object = {
+        'chart': {
+            'zoomType': 'x'
+        },
+        'title': {
+            'text': 'Flow time series'
+        },
+        'legend': {
+            'layout': 'vertical',
+            'align': 'right',
+            'verticalAlign': 'middle',
+            'borderWidth': 0,
+            'enabled': False
+        },
+        'xAxis': {
+            'title': {
+                'enabled': True,
+                'text': 'time',
+                'offset': 35
+            },
+            'type': 'datetime',
+            'tickLength': 10
+        },
+        'yAxis': {
+            'title': {
+                'enabled': True,
+                'text': 'Discharge [cfs]'
+            }
+        },
+        'tooltip': {
+            'pointFormat': '{point.y} cfs',
+            'valueDecimals': 2,
+            'xDateFormat': '%d %b %Y %H:%M'
+        },
+        'series': [{
+                       'name': 'Hydrograph',
+                       'color': '#3498db',
+                       'data': []}
+        ]}
+    line_plot_view = PlotView(highcharts_object=highcharts_object,
+                              width='100%',
+                              height='300px',
+                              attributes='id=hydrograph-plot'
+        )
+
+    select_input_options = SelectInput(display_text='Select gage',
+                            name='select_input',
+                            multiple=False,
+                            options=[],
+                            initial=[],
+                            original=[])
+
+
+
+    #"Analyze recessions" button has been pressed
+    # this stores new set of analysis parameters
+    # and performs recession analysis, stores data in dictionaries
+    # creates a new dropdown box with user gages
+    if request.POST and 'submit_button' in request.POST:
+
         app_workspace = RecessionAnalyzer.get_user_workspace(request.user)
         new_file_path = os.path.join(app_workspace.path,'current_plot.txt')
-
         pickle.dump(request.POST, open(new_file_path[:-4] + '.p','w'))
+        post = pickle.load(open(new_file_path[:-4] + '.p','r'))
+        submitted='submitted'
+        gageNames    = post['gages_input'].split(',')
+        start       = post['start_input']
+        stop        = post['stop_input']
+        rec_sense   = post['rec_sense_input']
+        min_length  = post['min_length_input']
+        ante_moist  = post['antecedent_moisture_input']
+        lag_start   = post['lag_start_input']
 
-        #with open(new_file_path,'w') as a_file:
-        #    poststring = request.POST['gages_input']+'\n' + request.POST['start_input']+','+request.POST['stop_input']+','+request.POST['rec_sense_input']+','+request.POST['min_length_input']+','+request.POST['antecedent_moisture_input']+','+request.POST['lag_start_input']+','+str(nonlinear_fitting_initial)+','+str(concave_initial)
-        #    a_file.write(poststring)
+
+        nonlin_fit  = post.get('nonlinear_fitting_input',False)
+        concave     = post.get('concave_input', False)
+
+        min_length = float(min_length)
+        selectivity = float(rec_sense)*500
+        ante=10
+        window=3
+
+        sitesDict, startStopDict = recessionExtract(gageNames, start,stop,ante=10, alph=0.90, window=3, selectivity=selectivity, minLen=min_length, option=1, nonlin_fit=nonlin_fit)
+
+        abJson = createAbJson(sitesDict,gageNames);
+
+
+        new_file_path = os.path.join(app_workspace.path,'current_dict.p')
+        pickle.dump(sitesDict, open(new_file_path,'w'))
+
+        new_file_path = os.path.join(app_workspace.path,'current_startStop.p')
+        pickle.dump(startStopDict, open(new_file_path,'w'))
+
+        gageName = gageNames[0]
+        ts = sitesDict[gageName]
+        startStop = startStopDict[gageName]
+        startVec = startStop[0]
+        endVec = startStop[1]
+        flow = ts[gageName];
+        tsinds = ts.index
+        data = zip(tsinds,flow);
+
+
+        ##################TESTING REC/NOTREC plot
+        series = [];
+        #build recessions
+
+        series.append({'name':' ','color':'#0066ff',
+                           'data':zip(flow[tsinds[0]:startVec[0]].index,flow[tsinds[0]:startVec[0]])})
+        series.append({'name':' ','color':'#ff6600',
+                           'data':zip(flow[startVec[0]:endVec[0]].index,flow[startVec[0]:endVec[0]])})
+        for i in np.arange(0,len(startVec)-1):
+            series.append({'name':' ','color':'#0066ff',
+                           'data':zip(flow[endVec[i]:startVec[i+1]].index,flow[endVec[i]:startVec[i+1]])})
+            series.append({'name':' ','color':'#ff6600',
+                           'data':zip(flow[startVec[i+1]:endVec[i+1]].index,flow[startVec[i+1]:endVec[i+1]])})
+
+        series.append({'name':' ','color':'#0066ff',
+                           'data':zip(flow[endVec[-1]:tsinds[-1]].index,flow[endVec[-1]:tsinds[-1]])})
+
+        optionsTuples = zip(gageNames,gageNames)
+
+
+        select_input_options = SelectInput(display_text='Select gage',
+                            name='select_input',
+                            multiple=False,
+                            initial=[gageName],
+                            options=optionsTuples,
+                            attributes={"onchange":"updatePlot(this.value);"})
+
+        highcharts_object = {
+            'chart': {
+                'zoomType': 'x'
+            },
+            'title': {
+                'text': 'Flow time series'
+            },
+            'legend': {
+                'layout': 'vertical',
+                'align': 'right',
+                'verticalAlign': 'middle',
+                'borderWidth': 0,
+                'enabled': False
+            },
+            'xAxis': {
+                'title': {
+                    'enabled': True,
+                    'text': 'time',
+                    'offset': 35
+                },
+                'type': 'datetime',
+                'tickLength': 10
+            },
+            'yAxis': {
+                'title': {
+                    'enabled': True,
+                    'text': 'Discharge [cfs]'
+                }
+            },
+            'tooltip': {
+                'pointFormat': '{point.y} cfs',
+                'valueDecimals': 2,
+                'xDateFormat': '%d %b %Y %H:%M'
+            },
+            'series': series}
+        line_plot_view = PlotView(highcharts_object=highcharts_object,
+                                  width='100%',
+                                  height='300px',
+                                  attributes='id=hydrograph-plot'
+            )
+
+        avals = ts['A0n'][ts['A0n'] > 0 ].values;
+        bvals = ts['Bn'][ts['Bn']>0].values;
+        tuplelist=[];
+        for i in np.arange(len(avals)):
+            tuplelist.append((avals[i],bvals[i]))
+
+        scatter_highchart = {
+            'chart': {
+                'type':'scatter',
+                'zoomType': 'xy'
+            },
+            'title': {
+                'text': 'Recession parameters'
+            },
+            'legend': {
+                'layout': 'vertical',
+                'align': 'right',
+                'verticalAlign': 'middle',
+                'borderWidth': 0,
+                'enabled': False
+            },
+            'exporting': {
+                'enabled':'true'
+            },
+            'tooltip': {
+                'pointFormat':'b={point.y:,.2f}, a={point.x:,.2f}'
+            },
+            'xAxis': {
+                'title': {
+                    'enabled': True,
+                    'text': 'a',
+                    'offset': 35
+                },
+                'type': 'logarithmic',
+                'tickLength': 10
+            },
+            'yAxis': {
+                'title': {
+                    'enabled': True,
+                    'text': 'b'
+                }
+            },
+            'series': [{'name':' ','data':tuplelist}]}
+
+        scatter_plot_view = PlotView(highcharts_object=scatter_highchart,
+                                  width='100%',
+                                  height='300px',
+                                  attributes='id=ab-scatter'
+            )
+
+    #This updates the HIGHCHART when a gage is selected from the drop down
+    # menu...does not perform any new analyses, simply loads data
+    #stored in workspace from original analysis
+    if request.POST and 'site_submit' in request.POST:
+
+        app_workspace = RecessionAnalyzer.get_user_workspace(request.user)
+        new_file_path = os.path.join(app_workspace.path,'current_plot.txt')
+        post = pickle.load(open(new_file_path[:-4] + '.p','r'))
+        new_file_path = os.path.join(app_workspace.path,'current_dict.p')
+        sitesDict = pickle.load(open(new_file_path,'r'))
+
+        new_file_path = os.path.join(app_workspace.path,'current_startStop.p')
+        startStopDict = pickle.load(open(new_file_path,'r'))
 
         submitted='submitted'
 
+        gageName = request.POST['select_input']
+
+        ts = sitesDict[gageName]
+        startStop = startStopDict[gageName]
+        startVec = startStop[0]
+        endVec = startStop[1]
+        flow = ts[gageName];
+        tsinds = ts.index
+        data = zip(tsinds,flow);
+        series = [];
+
+        series.append({'name':' ','color':'#0066ff',
+                           'data':zip(flow[tsinds[0]:startVec[0]].index,flow[tsinds[0]:startVec[0]])})
+        series.append({'name':' ','color':'#ff6600',
+                           'data':zip(flow[startVec[0]:endVec[0]].index,flow[startVec[0]:endVec[0]])})
+        for i in np.arange(0,len(startVec)-1):
+            series.append({'name':' ','color':'#0066ff',
+                           'data':zip(flow[endVec[i]:startVec[i+1]].index,flow[endVec[i]:startVec[i+1]])})
+            series.append({'name':' ','color':'#ff6600',
+                           'data':zip(flow[startVec[i+1]:endVec[i+1]].index,flow[startVec[i+1]:endVec[i+1]])})
+
+        series.append({'name':' ','color':'#0066ff',
+                           'data':zip(flow[endVec[-1]:tsinds[-1]].index,flow[endVec[-1]:tsinds[-1]])})
+
+        gageNames    = post['gages_input'].split(',')
+
+        optionsTuples = zip(gageNames,gageNames)
+
+        select_input_options = SelectInput(display_text='Select gage',
+                            name='select_input',
+                            multiple=False,
+                            initial=[gageName],
+                            options=optionsTuples,
+                            attributes={"onchange":"updatePlot(this.value);"})
+
+
+        highcharts_object = {
+            'chart': {
+                'zoomType': 'x'
+            },
+            'title': {
+                'text': 'Flow time series'
+            },
+            'legend': {
+                'layout': 'vertical',
+                'align': 'right',
+                'verticalAlign': 'middle',
+                'borderWidth': 0,
+                'enabled': False
+            },
+            'xAxis': {
+                'title': {
+                    'enabled': True,
+                    'text': 'time',
+                    'offset': 35
+                },
+                'type': 'datetime',
+                'tickLength': 10
+            },
+            'yAxis': {
+                'title': {
+                    'enabled': True,
+                    'text': 'Discharge [cfs]'
+                }
+            },
+            'tooltip': {
+                'pointFormat': '{point.y} cfs',
+                'valueDecimals': 2,
+                'xDateFormat': '%d %b %Y %H:%M'
+            },
+            'series': series}
+        line_plot_view = PlotView(highcharts_object=highcharts_object,
+                                  width='100%',
+                                  height='300px',
+                                  attributes='id=hydrograph-plot'
+            )
+
+        avals = ts['A0n'][ts['A0n'] > 0 ].values;
+        bvals = ts['Bn'][ts['Bn']>0].values;
+        tuplelist=[];
+        for i in np.arange(len(avals)):
+            tuplelist.append((avals[i],bvals[i]))
+
+        scatter_highchart = {
+            'chart': {
+                'type':'scatter',
+                'zoomType': 'xy'
+            },
+            'title': {
+                'text': 'Recession parameters'
+            },
+            'legend': {
+                'layout': 'vertical',
+                'align': 'right',
+                'verticalAlign': 'middle',
+                'borderWidth': 0,
+                'enabled': False
+            },
+            'exporting': {
+                'enabled':'true'
+            },
+            'tooltip': {
+                'pointFormat':'b={point.y:,.2f}, a={point.x:,.2f}'
+            },
+            'xAxis': {
+                'title': {
+                    'enabled': True,
+                    'text': 'a',
+                    'offset': 35
+                },
+                'type': 'logarithmic',
+                'tickLength': 10
+            },
+            'yAxis': {
+                'title': {
+                    'enabled': True,
+                    'text': 'b'
+                }
+            },
+            'series': [{'name':' ','data':tuplelist}]}
+
+        scatter_plot_view = PlotView(highcharts_object=scatter_highchart,
+                                  width='100%',
+                                  height='300px',
+                                  attributes='id=ab-scatter'
+            )
 
     context = {'start_options': start_options,
                'rec_sense_initial':rec_sense_initial,
@@ -103,7 +512,12 @@ def home(request):
                 'submitted':submitted,
                 'antecedent_moisture_options':antecedent_moisture_options,
                 'lag_start_options':lag_start_options,
-                'rec_sense_options':rec_sense_options}
+                'rec_sense_options':rec_sense_options,
+               'line_plot_view':line_plot_view,
+               'scatter_plot_view':scatter_plot_view,
+               'select_input_options':select_input_options,
+               'abJson':abJson
+                }
 
     return render(request, 'recession_analyzer/home.html', context)
 

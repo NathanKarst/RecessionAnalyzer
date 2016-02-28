@@ -2,6 +2,12 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, Float
 from sqlalchemy.orm import sessionmaker
+from .app import RecessionAnalyzer
+import os
+import cPickle as pickle
+import simplejson as json
+from django import template
+from django.utils.safestring import mark_safe
 
 
 import pandas as pd
@@ -221,3 +227,20 @@ def getTimeSeries(gage,start,stop):
     df.columns = ['Agency','Site','Time','Discharge','DischargeQualification']
     df = df[df.DischargeQualification=='A']
     return df
+
+def createAbJson(sitesDict,gageNames):
+    #for each gage, create abtuples list
+    #store in list of abpairs dictionary
+    #json'ize that bizness
+    abDict = {};
+    for gage in gageNames:
+        ts = sitesDict[gage];
+        avals = ts['A0n'][ts['A0n'] > 0 ].values;
+        bvals = ts['Bn'][ts['Bn']>0].values;
+        bvals = np.ndarray.tolist(bvals); avals = np.ndarray.tolist(avals)
+        abCurrDict ={}; abCurrDict['b']=bvals; abCurrDict['a']=avals;
+
+        #abDict[gage]=[[x,y] for x,y in zip(avals,bvals)];
+        abDict[gage]=abCurrDict;
+
+    return json.dumps(abDict)
