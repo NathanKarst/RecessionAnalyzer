@@ -96,89 +96,10 @@ def home(request):
 
     submitted=''
 
-    scatter_highchart = {
-        'chart': {
-            'type':'scatter',
-            'zoomType': 'xy'
-        },
-        'title': {
-            'text': 'Recession parameters'
-        },
-        'legend': {
-            'layout': 'vertical',
-            'align': 'right',
-            'verticalAlign': 'middle',
-            'borderWidth': 0,
-            'enabled': False
-        },
-        'xAxis': {
-            'title': {
-                'enabled': True,
-                'text': 'log(a)',
-                'offset': 35
-            },
-            'type': 'logarithmic',
-            'tickLength': 10
-        },
-        'yAxis': {
-            'title': {
-                'enabled': True,
-                'text': 'b'
-            }
-        },
-        'series': []}
+    ## initialize empty plots
+    scatter_plot_view = buildRecParamPlot([])
+    line_plot_view = buildFlowTimeSeries([])
 
-    scatter_plot_view = PlotView(highcharts_object=scatter_highchart,
-                              width='100%',
-                              height='300px',
-                              attributes='id=ab-scatter'
-        )
-
-
-    highcharts_object = {
-        'chart': {
-            'zoomType': 'x'
-        },
-        'title': {
-            'text': 'Flow time series'
-        },
-        'legend': {
-            'layout': 'vertical',
-            'align': 'right',
-            'verticalAlign': 'middle',
-            'borderWidth': 0,
-            'enabled': False
-        },
-        'xAxis': {
-            'title': {
-                'enabled': True,
-                'text': 'time',
-                'offset': 35
-            },
-            'type': 'datetime',
-            'tickLength': 10
-        },
-        'yAxis': {
-            'title': {
-                'enabled': True,
-                'text': 'Discharge [cfs]'
-            }
-        },
-        'tooltip': {
-            'pointFormat': '{point.y} cfs',
-            'valueDecimals': 2,
-            'xDateFormat': '%d %b %Y %H:%M'
-        },
-        'series': [{
-                       'name': 'Hydrograph',
-                       'color': '#3498db',
-                       'data': []}
-        ]}
-    line_plot_view = PlotView(highcharts_object=highcharts_object,
-                              width='100%',
-                              height='300px',
-                              attributes='id=hydrograph-plot'
-        )
 
     select_input_options = SelectInput(display_text='Select gage',
                             name='select_input',
@@ -200,7 +121,7 @@ def home(request):
         pickle.dump(request.POST, open(new_file_path[:-4] + '.p','w'))
         post = pickle.load(open(new_file_path[:-4] + '.p','r'))
         submitted='submitted'
-        gageNames    = post['gages_input'].split(',')
+        gageNames   = post['gages_input'].split(',')
         start       = post['start_input']
         stop        = post['stop_input']
         rec_sense   = post['rec_sense_input']
@@ -265,46 +186,7 @@ def home(request):
                             options=optionsTuples,
                             attributes={"onchange":"updatePlot(this.value);"})
 
-        highcharts_object = {
-            'chart': {
-                'zoomType': 'x'
-            },
-            'title': {
-                'text': 'Flow time series'
-            },
-            'legend': {
-                'layout': 'vertical',
-                'align': 'right',
-                'verticalAlign': 'middle',
-                'borderWidth': 0,
-                'enabled': False
-            },
-            'xAxis': {
-                'title': {
-                    'enabled': True,
-                    'text': 'time',
-                    'offset': 35
-                },
-                'type': 'datetime',
-                'tickLength': 10
-            },
-            'yAxis': {
-                'title': {
-                    'enabled': True,
-                    'text': 'Discharge [cfs]'
-                }
-            },
-            'tooltip': {
-                'pointFormat': '{point.y} cfs',
-                'valueDecimals': 2,
-                'xDateFormat': '%d %b %Y %H:%M'
-            },
-            'series': series}
-        line_plot_view = PlotView(highcharts_object=highcharts_object,
-                                  width='100%',
-                                  height='300px',
-                                  attributes='id=hydrograph-plot'
-            )
+        line_plot_view = buildFlowTimeSeries(series)
 
         avals = ts['A0n'][ts['A0n'] > 0 ].values;
         bvals = ts['Bn'][ts['Bn']>0].values;
@@ -312,49 +194,8 @@ def home(request):
         for i in np.arange(len(avals)):
             tuplelist.append((avals[i],bvals[i]))
 
-        scatter_highchart = {
-            'chart': {
-                'type':'scatter',
-                'zoomType': 'xy'
-            },
-            'title': {
-                'text': 'Recession parameters'
-            },
-            'legend': {
-                'layout': 'vertical',
-                'align': 'right',
-                'verticalAlign': 'middle',
-                'borderWidth': 0,
-                'enabled': False
-            },
-            'exporting': {
-                'enabled':'true'
-            },
-            'tooltip': {
-                'pointFormat':'b={point.y:,.2f}, a={point.x:,.2f}'
-            },
-            'xAxis': {
-                'title': {
-                    'enabled': True,
-                    'text': 'a',
-                    'offset': 35
-                },
-                'type': 'logarithmic',
-                'tickLength': 10
-            },
-            'yAxis': {
-                'title': {
-                    'enabled': True,
-                    'text': 'b'
-                }
-            },
-            'series': [{'name':' ','data':tuplelist}]}
-
-        scatter_plot_view = PlotView(highcharts_object=scatter_highchart,
-                                  width='100%',
-                                  height='300px',
-                                  attributes='id=ab-scatter'
-            )
+        scatter_plot_view = buildRecParamPlot(tuplelist)
+        
 
     #This updates the HIGHCHART when a gage is selected from the drop down
     # menu...does not perform any new analyses, simply loads data
@@ -407,47 +248,8 @@ def home(request):
                             options=optionsTuples,
                             attributes={"onchange":"updatePlot(this.value);"})
 
+        line_plot_view = buildFlowTimeSeries(series)
 
-        highcharts_object = {
-            'chart': {
-                'zoomType': 'x'
-            },
-            'title': {
-                'text': 'Flow time series'
-            },
-            'legend': {
-                'layout': 'vertical',
-                'align': 'right',
-                'verticalAlign': 'middle',
-                'borderWidth': 0,
-                'enabled': False
-            },
-            'xAxis': {
-                'title': {
-                    'enabled': True,
-                    'text': 'time',
-                    'offset': 35
-                },
-                'type': 'datetime',
-                'tickLength': 10
-            },
-            'yAxis': {
-                'title': {
-                    'enabled': True,
-                    'text': 'Discharge [cfs]'
-                }
-            },
-            'tooltip': {
-                'pointFormat': '{point.y} cfs',
-                'valueDecimals': 2,
-                'xDateFormat': '%d %b %Y %H:%M'
-            },
-            'series': series}
-        line_plot_view = PlotView(highcharts_object=highcharts_object,
-                                  width='100%',
-                                  height='300px',
-                                  attributes='id=hydrograph-plot'
-            )
 
         avals = ts['A0n'][ts['A0n'] > 0 ].values;
         bvals = ts['Bn'][ts['Bn']>0].values;
@@ -455,49 +257,7 @@ def home(request):
         for i in np.arange(len(avals)):
             tuplelist.append((avals[i],bvals[i]))
 
-        scatter_highchart = {
-            'chart': {
-                'type':'scatter',
-                'zoomType': 'xy'
-            },
-            'title': {
-                'text': 'Recession parameters'
-            },
-            'legend': {
-                'layout': 'vertical',
-                'align': 'right',
-                'verticalAlign': 'middle',
-                'borderWidth': 0,
-                'enabled': False
-            },
-            'exporting': {
-                'enabled':'true'
-            },
-            'tooltip': {
-                'pointFormat':'b={point.y:,.2f}, a={point.x:,.2f}'
-            },
-            'xAxis': {
-                'title': {
-                    'enabled': True,
-                    'text': 'a',
-                    'offset': 35
-                },
-                'type': 'logarithmic',
-                'tickLength': 10
-            },
-            'yAxis': {
-                'title': {
-                    'enabled': True,
-                    'text': 'b'
-                }
-            },
-            'series': [{'name':' ','data':tuplelist}]}
-
-        scatter_plot_view = PlotView(highcharts_object=scatter_highchart,
-                                  width='100%',
-                                  height='300px',
-                                  attributes='id=ab-scatter'
-            )
+        scatter_plot_view = buildRecParamPlot(tuplelist)
 
     context = {'start_options': start_options,
                'rec_sense_initial':rec_sense_initial,
@@ -521,6 +281,94 @@ def home(request):
 
     return render(request, 'recession_analyzer/home.html', context)
 
+
+def buildFlowTimeSeries(series):
+    highcharts_object = {
+        'chart': {
+            'zoomType': 'x'
+        },
+        'title': {
+            'text': 'Flow time series'
+        },
+        'legend': {
+            'layout': 'vertical',
+            'align': 'right',
+            'verticalAlign': 'middle',
+            'borderWidth': 0,
+            'enabled': False
+        },
+        'xAxis': {
+            'title': {
+                'enabled': True,
+                'text': 'time',
+                'offset': 35
+            },
+            'type': 'datetime',
+            'tickLength': 10
+        },
+        'yAxis': {
+            'title': {
+                'enabled': True,
+                'text': 'Discharge [cfs]'
+            }
+        },
+        'tooltip': {
+            'pointFormat': '{point.y} cfs',
+            'valueDecimals': 2,
+            'xDateFormat': '%d %b %Y %H:%M'
+        },
+        'series': series}
+    return PlotView(highcharts_object=highcharts_object,
+                              width='100%',
+                              height='300px',
+                              attributes='id=hydrograph-plot')
+
+def buildRecParamPlot(tuplelist):
+    scatter_highchart = {
+        'chart': {
+            'type':'scatter',
+            'zoomType': 'xy'
+        },
+        'title': {
+            'text': 'Recession parameters'
+        },
+        'legend': {
+            'layout': 'vertical',
+            'align': 'right',
+            'verticalAlign': 'middle',
+            'borderWidth': 0,
+            'enabled': False
+        },
+        'exporting': {
+            'enabled':'true'
+        },
+        'tooltip': {
+            'pointFormat':'b={point.y:,.2f}, a={point.x:,.2f}'
+        },
+        'xAxis': {
+            'title': {
+                'enabled': True,
+                'text': 'a',
+                'offset': 35
+            },
+            'type': 'logarithmic',
+            'tickLength': 10
+        },
+        'yAxis': {
+            'title': {
+                'enabled': True,
+                'text': 'b'
+            }
+        },
+        'series': [{'name':' ','data':tuplelist}]}
+
+    return PlotView(highcharts_object=scatter_highchart,
+                              width='100%',
+                              height='300px',
+                              attributes='id=ab-scatter')
+
+
+## DRALLE: CAN WE GET RID OF THIS NOW? IF SO, FEEL FREE TO DELETE.
 def results(request):
     '''
     Controller for results plotting page
