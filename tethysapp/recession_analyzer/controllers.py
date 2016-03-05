@@ -98,7 +98,7 @@ def home(request):
 
     ## initialize empty plots
     scatter_plot_view = buildRecParamPlot([])
-    line_plot_view = buildFlowTimeSeries([])
+    line_plot_view = buildFlowTimeSeriesPlot([])
 
 
     select_input_options = SelectInput(display_text='Select gage',
@@ -186,13 +186,11 @@ def home(request):
                             options=optionsTuples,
                             attributes={"onchange":"updatePlot(this.value);"})
 
-        line_plot_view = buildFlowTimeSeries(series)
+        line_plot_view = buildFlowTimeSeriesPlot(series)
 
         avals = ts['A0n'][ts['A0n'] > 0 ].values;
         bvals = ts['Bn'][ts['Bn']>0].values;
-        tuplelist=[];
-        for i in np.arange(len(avals)):
-            tuplelist.append((avals[i],bvals[i]))
+        tuplelist = zip(avals,bvals)
 
         scatter_plot_view = buildRecParamPlot(tuplelist)
         
@@ -248,15 +246,13 @@ def home(request):
                             options=optionsTuples,
                             attributes={"onchange":"updatePlot(this.value);"})
 
-        line_plot_view = buildFlowTimeSeries(series)
+        line_plot_view = buildFlowTimeSeriesPlot(series)
 
 
         avals = ts['A0n'][ts['A0n'] > 0 ].values;
         bvals = ts['Bn'][ts['Bn']>0].values;
-        tuplelist=[];
-        for i in np.arange(len(avals)):
-            tuplelist.append((avals[i],bvals[i]))
-
+        tuplelist = zip(avals,bvals)
+        
         scatter_plot_view = buildRecParamPlot(tuplelist)
 
     context = {'start_options': start_options,
@@ -282,7 +278,7 @@ def home(request):
     return render(request, 'recession_analyzer/home.html', context)
 
 
-def buildFlowTimeSeries(series):
+def buildFlowTimeSeriesPlot(series):
     highcharts_object = {
         'chart': {
             'zoomType': 'x'
@@ -435,9 +431,6 @@ def results(request):
 
     series.append({'name':' ','color':'#0066ff',
                        'data':zip(flow[endVec[-1]:tsinds[-1]].index,flow[endVec[-1]:tsinds[-1]])})
-
-
-
 
 
 

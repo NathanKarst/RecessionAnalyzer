@@ -91,9 +91,15 @@ def recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectiv
                 def func(t, a, r):
                     return (q0**(r)-a*r*t)**(1/r)
                 try:
-                    popt, cov = op.curve_fit(func,t,d[site][recStart:recEnd]);
+                    #ab=fitRecession(t,d[site][recStart:recEnd])
+                    #popt, cov = op.curve_fit(func,t,d[site][recStart:recEnd],p0=[ab[0],1-ab[1]]); 
+                    # these initial guesses mirror Dralle's Matlab implementation
+                    popt, cov = op.curve_fit(func,t,d[site][recStart:recEnd],p0=[0.01,-0.5],maxfev=1000); 
                 except RuntimeError:
-                    continue;
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    print('RuntimeError!')
+                    print(exc_value)
+                    continue
                 afit = popt[0]; bfit = 1-popt[1];
                 if bfit>=1 and bfit<10:
                     afitVec=np.append(afitVec,afit); bfitVec=np.append(bfitVec,bfit)
@@ -104,6 +110,8 @@ def recessionExtract(gageName, start,stop,ante=10, alph=0.90, window=3, selectiv
                     api = np.sum(beforeRec*factor)
                     apiVec=np.append(apiVec,api)
 
+        ## DRALLE: SHOULD WE SPLIT THIS INTO TWO DICTIONARIES? ONE FOR THE TIME SERIES STUFF
+        ## AND ANOTHER FOR THE RECESSION PARAMETERS STUFF?
         a0vec=BergnerZouhar(afitVec,bfitVec);
         d['An'].loc[startVec]=afitVec;
         d['Bn'].loc[startVec]=bfitVec;
