@@ -227,7 +227,6 @@ def getTimeSeries(gage,start,stop):
 
     dataparse = lambda x: pd.datetime.strptime(x, '%Y-%m-%d')
     response = urllib.urlopen('http://waterdata.usgs.gov/nwis/dv?cb_00060=on&format=rdb&site_no=' + gage + '&referred_module=sw&period=&begin_date='+start+'&end_date='+stop)
-    print(response)
     tsv = response.read().decode('utf8')
     tsv = StringIO(tsv)
 

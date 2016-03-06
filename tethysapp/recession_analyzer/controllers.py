@@ -9,6 +9,10 @@ import os
 import cPickle as pickle
 import simplejson as json
 
+import urllib
+from io import StringIO
+
+
 @login_required()
 def home(request):
     """
@@ -53,7 +57,7 @@ def home(request):
         app_workspace = RecessionAnalyzer.get_user_workspace(request.user)
         new_file_path = os.path.join(app_workspace.path,'current_plot.txt')
         post = pickle.load(open(new_file_path[:-4] + '.p','r'))
-        gages_initial    = post['gages_input']
+        gages_initial       = post['gages_input']
         start_initial       = post['start_input']
         stop_initial        = post['stop_input']
         rec_sense_initial   = post['rec_sense_input']
@@ -63,6 +67,8 @@ def home(request):
         nonlin_fit_initial  = post.get('nonlinear_fitting_input',False)
         concave_initial     = post.get('concave_input', False)
 
+
+    #checkGageExistence(gages_initial)
 
     #initialize options for all the sliders, plots, etc
     ##################################################
@@ -115,7 +121,6 @@ def home(request):
     # and performs recession analysis, stores data in dictionaries
     # creates a new dropdown box with user gages
     if request.POST and 'submit_button' in request.POST:
-
         app_workspace = RecessionAnalyzer.get_user_workspace(request.user)
         new_file_path = os.path.join(app_workspace.path,'current_plot.txt')
         pickle.dump(request.POST, open(new_file_path[:-4] + '.p','w'))
@@ -277,6 +282,20 @@ def home(request):
 
     return render(request, 'recession_analyzer/home.html', context)
 
+
+def checkGageExistence(gage):
+    response = urllib.urlopen('http://waterservices.usgs.gov/nwis/site/?format=rdb&sites='+gage)
+
+    tsv = response.read().decode('utf8')
+    tsv = StringIO(tsv)
+
+    # the read will fail if the gage is no valid
+    try: df = pd.read_csv(tsv,sep='\t',header=29,index_col=False,skiprows=[30])
+    except: return False
+
+    # we only want stream gages
+    if set(df.site_tp_cd) == set(['ST']): return True
+    return False
 
 def buildFlowTimeSeriesPlot(series):
     highcharts_object = {
