@@ -21,7 +21,7 @@
         return [avar[i], bvar[i]];
     });
 
-    $('#container').highcharts({
+    $('#ab-scatter').highcharts({
         chart: {
             type: 'scatter'
         },
@@ -45,8 +45,8 @@
 <div class="row">
     <div class="col-md-3">
         <form method="post" >
-            <input type="submit" name="submit_button" class="btn btn-primary" value="Analyze recessions">
-            {% gizmo text_input gages_options %}
+            <input type="submit" name="analyze" class="btn btn-primary" value="Analyze recessions">
+            {% gizmo select_input gages_options %}
             {% gizmo date_picker start_options %}
             {% gizmo date_picker stop_options %}
             {% gizmo toggle_switch concave_options %}
@@ -74,11 +74,7 @@
                 {% csrf_token %}
                 <div class="row">
                     <div class="col-xs-7">
-                        {% gizmo select_input select_input_options %}
-                    </div>
-                    <div class="col-xs-3">
-                        <div>&nbsp</div>
-                        <input type="submit" name="site_submit" class="btn btn-primary" value="Update plot">
+                        {% gizmo select_input select_gage_options %}
                     </div>
                 </div>
             </form>
